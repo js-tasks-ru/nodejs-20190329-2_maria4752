@@ -11,6 +11,26 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'GET':
+      if (pathname.indexOf('/') != -1) {
+        res.statusCode = 400;
+        res.end('Error 400');
+        break;
+      }
+      const stream = fs.createReadStream(filepath);
+      let data = '';
+      stream.on('error', (error) => {
+        res.statusCode = 404;
+        res.end('Error 404');
+        console.log('fffffuck' + error);
+      });
+
+      stream.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      stream.pipe(res);
+      stream.on('close', () => {});
+      stream.on('end', () => {});
 
       break;
 
