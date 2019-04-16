@@ -15,11 +15,61 @@ server.on('request', (req, res) => {
     res.end();
     return;
   }
+
   const filepath = path.join(__dirname, 'files', pathname);
+
 
   switch (req.method) {
     case 'POST':
-      writeFile(req, res, filepath);
+
+      req.on('error', () => {
+        res.statusCode = 500;
+        res.end();
+      });
+      res.on('error', () => {
+        res.statusCode = 500;
+        res.end();
+      });
+      req.on('aborted', () => {
+        fs.unlink(filepath, (err) => {
+          if (err) {
+            res.statusCode = 500;
+            res.end();
+          }
+        });
+      });
+
+      const wstream = fs.createWriteStream(filepath, {flags: 'wx'});
+      fs.access(filepath, fs.constants.F_OK, (err) => {
+        if (!err) {
+          res.statusCode = 409;
+          res.end();
+        }
+      });
+      wstream
+          .on('error', (err) => {
+            res.statusCode = 500;
+            res.end();
+          })
+          .on('close', () => {
+            res.statusCode = 201;
+            res.end();
+          });
+      const limit = new LimitSizeStream({limit: 1048576});
+      limit.on('error', (error) => {
+        if (error instanceof LimitExceededError) {
+          fs.unlink(filepath, (err) => {
+            if (!err) {
+              res.statusCode = 413;
+              res.end();
+            }
+          });
+          res.statusCode = 500;
+          res.end();
+        };
+      });
+      req.limit.pipe(wstream);
+
       break;
 
     default:
@@ -27,49 +77,5 @@ server.on('request', (req, res) => {
       res.end('Not implemented');
   }
 });
-function writeFile(req, res, filepath) {
-  const wStream = fs.createWriteStream(filepath, {flags: 'wx'});
-  const limitStream = new LimitSizeStream({limit: 1024 * 1024});
 
-  req.on('error', () => send500(res));
-  res.on('error', () => send500(res));
-  limitStream.on('error', (error) => {
-    if (error instanceof LimitExceededError) {
-      fs.unlink(filepath, (err) => {
-        if (err) send500(res);
-
-        res.statusCode = 413;
-        res.end();
-      });
-    } else {
-      send500(res);
-    }
-  });
-  wStream.on('error', (error) => {
-    if (error.code === 'EEXIST') {
-      res.statusCode = 409;
-      res.end();
-    } else {
-      send500(res);
-    }
-  });
-
-  req.on('aborted', () => {
-    fs.unlink(filepath, (err) => {
-      if (err) send500(res);
-    });
-  });
-
-  wStream.on('close', () => {
-    res.statusCode = 201;
-    res.end();
-  });
-
-  req.pipe(limitStream).pipe(wStream);
-}
-
-function send500(res) {
-  res.statusCode = 500;
-  res.end();
-}
 module.exports = server;
