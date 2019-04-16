@@ -1,7 +1,7 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
-
+const fs = require('fs');
 const server = new http.Server();
 
 server.on('request', (req, res) => {
@@ -21,7 +21,6 @@ server.on('request', (req, res) => {
       stream.on('error', (error) => {
         res.statusCode = 404;
         res.end('Error 404');
-        console.log('fffffuck' + error);
       });
 
       stream.on('data', (chunk) => {
