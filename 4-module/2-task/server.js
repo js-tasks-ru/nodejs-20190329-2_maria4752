@@ -5,8 +5,12 @@ const path = require('path');
 const fs = require('fs');
 const LimitSizeStream = require('./LimitSizeStream');
 const LimitExceededError = require('./LimitExceededError');
-
 const server = new http.Server();
+
+function removeFile(path) {
+  console.log('removed');
+  fs.unlink(path, (err) =>{});
+}
 
 server.on('request', (req, res) => {
   const pathname = url.parse(req.url).pathname.slice(1);
@@ -18,57 +22,49 @@ server.on('request', (req, res) => {
 
   const filepath = path.join(__dirname, 'files', pathname);
 
+  req.on('error', () => {
+    res.statusCode = 500;
+    res.end();
+  })
+  res.on('error', () => {
+    res.statusCode = 500;
+    res.end();
+  })
+  req.on('aborted', () => removeFile(filepath));
 
   switch (req.method) {
     case 'POST':
-
-      req.on('error', () => {
-        res.statusCode = 500;
-        res.end();
-      });
-      res.on('error', () => {
-        res.statusCode = 500;
-        res.end();
-      });
-      req.on('aborted', () => {
-        fs.unlink(filepath, (err) => {
-          if (err) {
-            res.statusCode = 500;
-            res.end();
-          }
-        });
-      });
-
-      const wstream = fs.createWriteStream(filepath, {flags: 'wx'});
       fs.access(filepath, fs.constants.F_OK, (err) => {
-        if (!err) {
+        if (!err){
           res.statusCode = 409;
           res.end();
-        }
-      });
-      wstream
-          .on('error', (err) => {
-            res.statusCode = 500;
-            res.end();
-          })
-          .on('close', () => {
-            res.statusCode = 201;
-            res.end();
-          });
-      const limit = new LimitSizeStream({limit: 1048576});
-      limit.on('error', (error) => {
-        if (error instanceof LimitExceededError) {
-          fs.unlink(filepath, (err) => {
-            if (!err) {
+        } else {
+          const writeStream = fs.createWriteStream(filepath, {flags: 'wx'});
+          const limit = new LimitSizeStream({limit: 1024*1024});
+          limit.on('error', (err) => {
+            if (err instanceof LimitExceededError) {
+              removeFile(filepath);
               res.statusCode = 413;
               res.end();
             }
+            res.statusCode = 500;
+            res.end();
           });
-          res.statusCode = 500;
-          res.end();
-        };
+
+          writeStream.on('error', (err) => {
+            removeFile(filepath);
+            res.statusCode = 500;
+            res.end();
+          });
+          writeStream.on('finish', () => {
+            res.statusCode = 201;
+            res.end();
+          });
+          req.pipe(limit).pipe(writeStream);
+
+          return;
+        }
       });
-      req.limit.pipe(wstream);
 
       break;
 
