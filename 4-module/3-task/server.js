@@ -12,14 +12,13 @@ server.on('request', (req, res) => {
   res.on('error', () => {
     res.statusCode = 500;
     res.end();
-  })
+  });
   const pathname = url.parse(req.url).pathname.slice(1);
   if (pathname.indexOf('/') != -1) {
     res.statusCode = 400;
     res.end('Error 400');
   }
   const filepath = path.join(__dirname, 'files', pathname);
-  console.log(filepath);
 
   switch (req.method) {
     case 'DELETE':
@@ -35,6 +34,8 @@ server.on('request', (req, res) => {
             res.end('Error 500');
             return;
           }
+          res.statusCode = 200;
+          res.end('OK');
           console.log('Deleted');
         });
       });
