@@ -1,7 +1,7 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
-
+const fs = require('fs');
 const server = new http.Server();
 
 server.on('request', (req, res) => {
@@ -11,6 +11,25 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'GET':
+      if (pathname.indexOf('/') != -1) {
+        res.statusCode = 400;
+        res.end('Error 400');
+        break;
+      }
+      const stream = fs.createReadStream(filepath);
+      let data = '';
+      stream.on('error', (error) => {
+        res.statusCode = 404;
+        res.end('Error 404');
+      });
+
+      stream.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      stream.pipe(res);
+      stream.on('close', () => {});
+      stream.on('end', () => {});
 
       break;
 
