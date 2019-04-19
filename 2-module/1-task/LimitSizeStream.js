@@ -12,7 +12,7 @@ class LimitSizeStream extends stream.Transform {
     if (this._encoding)
       this.setEncoding(this._encoding);
 
-    this.on('error', (err) => {console.log(err)});
+    this.on('error', (err) => {});
   }
 
   _transform(chunk, encoding, callback) {

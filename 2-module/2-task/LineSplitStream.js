@@ -7,7 +7,6 @@ class LineSplitStream extends stream.Transform {
     super(options);
 
     this.on('error', (err) => {
-      console.log(err);
     });
   }
 

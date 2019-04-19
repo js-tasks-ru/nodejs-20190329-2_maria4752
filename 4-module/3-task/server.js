@@ -36,7 +36,6 @@ server.on('request', (req, res) => {
           }
           res.statusCode = 200;
           res.end('OK');
-          console.log('Deleted');
         });
       });
 

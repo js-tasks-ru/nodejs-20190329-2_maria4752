@@ -8,7 +8,6 @@ const LimitExceededError = require('./LimitExceededError');
 const server = new http.Server();
 
 function removeFile(path) {
-  console.log('removed');
   fs.unlink(path, (err) =>{});
 }
 
