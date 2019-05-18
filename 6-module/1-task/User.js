@@ -1,12 +1,5 @@
 const mongoose = require('mongoose');
 
-mongoose.set('useNewUrlParser', true);
-mongoose.set('useFindAndModify', false);
-mongoose.set('useCreateIndex', true);
-
-mongoose.set('debug', true);
-mongoose.connect('mongodb://localhost/test');
-
 const schema = new mongoose.Schema({
   email: {
     type: String,
